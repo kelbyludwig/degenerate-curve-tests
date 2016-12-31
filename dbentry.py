@@ -8,14 +8,14 @@ class DBEntry:
 
     def __init__(self):
         self.name = ""
-        self.curve_formula = ""
+        self.curve_formula_constraint = ""
         self.addition_constraints = {}
         self.variables = ""
 
     def __str__(self):
         s = "name: %s\n\t" % self.name
         s += "variables: %s\n\t" % self.variables
-        s += "curve: %s\n\t" % self.curve_formula
+        s += "curve_formula_contraint: %s\n\t" % self.curve_formula
         s += "addition_constraints:\n"
         for _, constr in self.addition_constraints.items():
             s += "\t%s\n" % constr
@@ -26,11 +26,32 @@ class DBEntry:
         s += "\tdef __init__(self):\n"
         s += "\t\tself.name = \"%s\"\n" % self.name
         s += "\t\tself.variables = \"%s\"\n" % self.variables.strip()
-        s += "\t\tself.curve_formula = \"%s\"\n" % self.curve_formula
+        s += "\t\tself.curve_formula_constraint = \"%s\"\n" % self.curve_formula
         s += "\t\tself.addition_constraints = {\n"
         for var_name, constr in self.addition_constraints.items():
             s += "\t\t\t\"%s\":\"%s\",\n" % (var_name, constr)
         s += "\t\t}\n\n\n"
+        return s
+
+
+    def check_constraints(self, constraints=[], variables="", use_curve_formula_as_constraint=False):
+        var_split = self.variables.strip() + " " + variables
+        var_split = var_split.strip().split(" ") 
+    
+        for var in var_split:
+            _g[var] = Int(var)
+    
+        s = Solver()
+    
+        if use_curve_formula_as_constraint:
+            exec("s.add(%s)" % self.curve_formula_constraint)
+    
+        for _, add_constraint in self.addition_constraints.items():
+            exec("s.add(%s)" % add_constraint)
+    
+        for constr in constraints:
+            if constr != "":
+                exec("s.add(%s)" % constr)
         return s
 
 
@@ -61,6 +82,7 @@ def handle_constraint(constr):
         match_replace = match[0] + "*("
         constr = constr.replace(match, match_replace)
     return constr
+
 
 def read_db_entry(file_name):
     """Create a DBEntry from a EFD database file.
@@ -93,26 +115,6 @@ def read_db_entry(file_name):
                 pass
         return dbe
 
-#TODO(kkl): make this a method where you can incrementally extend the Solver?
-def add_constraints(dbe, degenerate_constraints, invalid_point=True):
-    var_split = dbe.variables.strip().split(" ") 
-
-    for var in var_split:
-        _g[var] = Int(var)
-
-    s = Solver()
-
-    if not invalid_point:
-        exec("s.add(%s)" % dbe.curve_formula)
-
-    for _, add_constraint in dbe.addition_constraints.items():
-        exec("s.add(%s)" % add_constraint)
-
-    for constr in degenerate_constraints:
-        if constr != "":
-            exec("s.add(%s)" % constr)
-    return s
-
 
 def create_curve_classes():
     with open("curves.py", "w") as curve_file:
@@ -121,16 +123,3 @@ def create_curve_classes():
         for entry in glob.glob("./efdb/*"):
             dbe = read_db_entry(entry)
             curve_file.write(dbe.to_python())
-
-create_curve_classes()
-
-#degen_constrs = []
-#degen_constrs.append("Not(x == 0)")
-#degen_constrs.append("Not((y % y1 == 0) and (y % y2 == 0))")
-#degen_constrs.append("x1 == 0")
-#degen_constrs.append("x2 == 0")
-#degen_constrs.append("y1 > 1")
-#degen_constrs.append("y2 > 1")
-
-#s = add_constraints(dbe, degen_constrs)
-#print(s.check())
