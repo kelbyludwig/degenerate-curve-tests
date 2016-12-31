@@ -10,6 +10,7 @@ class DBEntry:
         self.name = ""
         self.curve_formula_constraint = ""
         self.addition_constraints = {}
+        self.doubling_constraints = {}
         self.variables = ""
 
     def __str__(self):
@@ -19,6 +20,9 @@ class DBEntry:
         s += "addition_constraints:\n"
         for _, constr in self.addition_constraints.items():
             s += "\t%s\n" % constr
+        s += "doubling_constraints:\n"
+        for _, constr in self.doubling_constraints.items():
+            s += "\t%s\n" % constr
         return s
 
     def to_python(self):
@@ -27,6 +31,10 @@ class DBEntry:
         s += "\t\tself.name = \"%s\"\n" % self.name
         s += "\t\tself.variables = \"%s\"\n" % self.variables.strip()
         s += "\t\tself.curve_formula_constraint = \"%s\"\n" % self.curve_formula
+        s += "\t\tself.doubling_constraints = {\n"
+        for var_name, constr in self.doubling_constraints.items():
+            s += "\t\t\t\"%s\":\"%s\",\n" % (var_name, constr)
+        s += "\t\t}\n"
         s += "\t\tself.addition_constraints = {\n"
         for var_name, constr in self.addition_constraints.items():
             s += "\t\t\t\"%s\":\"%s\",\n" % (var_name, constr)
@@ -111,6 +119,10 @@ def read_db_entry(file_name):
                 constr = handle_constraint(rest)
                 var_name = constr[0]
                 dbe.addition_constraints[var_name] = constr
+            elif com == "doubling":
+                constr = handle_constraint(rest)
+                var_name = constr[0]
+                dbe.doubling_constraints[var_name] = constr
             else:
                 pass
         return dbe
